@@ -120,17 +120,21 @@ func (prom *MuxProm) Instrument() {
 func (prom *MuxProm) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		route := mux.CurrentRoute(r)
-		if route.GetName() == prom.MetricsRouteName {
+		if route != nil && route.GetName() == prom.MetricsRouteName {
 			next.ServeHTTP(w, r)
 		} else {
-			prom.reqInFlight.WithLabelValues(route.GetName(), r.Method).Inc()
+			routeName := "unknown"
+			if route != nil {
+				routeName = route.GetName()
+			}
+			prom.reqInFlight.WithLabelValues(routeName, r.Method).Inc()
 			start := time.Now()
 			sw := statusWriter{ResponseWriter: w}
 			next.ServeHTTP(&sw, r)
 			duration := time.Since(start)
-			prom.reqDurationHistogram.WithLabelValues(route.GetName(), r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
-			prom.reqRespSizeHistogram.WithLabelValues(route.GetName(), r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
-			prom.reqInFlight.WithLabelValues(route.GetName(), r.Method).Dec()
+			prom.reqDurationHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
+			prom.reqRespSizeHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
+			prom.reqInFlight.WithLabelValues(routeName, r.Method).Dec()
 		}
 	})
 }

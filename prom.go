@@ -114,10 +114,10 @@ func New(options ...func(prom *MuxProm)) *MuxProm {
 }
 
 func (prom *MuxProm) Instrument() {
-	prom.Router.Use(prom.middleware)
+	prom.Router.Use(prom.Middleware)
 }
 
-func (prom *MuxProm) middleware(next http.Handler) http.Handler {
+func (prom *MuxProm) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		route := mux.CurrentRoute(r)
 		if route.GetName() == prom.MetricsRouteName {

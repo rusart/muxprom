@@ -116,6 +116,7 @@ func New(options ...func(prom *MuxProm)) *MuxProm {
 func (prom *MuxProm) Instrument() {
 	prom.Router.Use(prom.middleware)
 	prom.Router.NotFoundHandler = WrapNotFoundHandler(prom.Router.NotFoundHandler, prom.middleware)
+	prom.Router.MethodNotAllowedHandler = WrapMethodNotAllowedHandler(prom.Router.MethodNotAllowedHandler, prom.middleware)
 }
 
 func (prom *MuxProm) middleware(next http.Handler) http.Handler {
@@ -179,6 +180,15 @@ func (prom *MuxProm) init() {
 func WrapNotFoundHandler(h http.Handler, m mux.MiddlewareFunc) http.Handler {
 	if h == nil {
 		h = http.NotFoundHandler()
+	}
+	return m(h)
+}
+
+func WrapMethodNotAllowedHandler(h http.Handler, m mux.MiddlewareFunc) http.Handler {
+	if h == nil {
+		h = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		})
 	}
 	return m(h)
 }

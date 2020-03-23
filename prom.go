@@ -123,7 +123,13 @@ func (prom *MuxProm) Middleware(next http.Handler) http.Handler {
 		if route != nil && route.GetName() == prom.MetricsRouteName {
 			next.ServeHTTP(w, r)
 		} else {
-			prom.reqInFlight.WithLabelValues(route.GetName(), r.Method).Inc()
+			var routeName string
+			if route == nil {
+				routeName = r.RequestURI
+			} else {
+				routeName = route.GetName()
+			}
+			prom.reqInFlight.WithLabelValues(routeName, r.Method).Inc()
 			start := time.Now()
 			sw := statusWriter{ResponseWriter: w}
 			next.ServeHTTP(&sw, r)

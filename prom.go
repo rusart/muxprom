@@ -137,7 +137,7 @@ func (prom *MuxProm) middleware(next http.Handler) http.Handler {
 			duration := time.Since(start)
 			prom.reqDurationHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
 			prom.reqRespSizeHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
-			prom.reqInFlight.WithLabelValues(route.GetName(), r.Method).Dec()
+			prom.reqInFlight.WithLabelValues(routeName, r.Method).Dec()
 		}
 	})
 }

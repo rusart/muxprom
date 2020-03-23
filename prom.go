@@ -135,8 +135,8 @@ func (prom *MuxProm) middleware(next http.Handler) http.Handler {
 			sw := statusWriter{ResponseWriter: w}
 			next.ServeHTTP(&sw, r)
 			duration := time.Since(start)
-			prom.reqDurationHistogram.WithLabelValues(route.GetName(), r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
-			prom.reqRespSizeHistogram.WithLabelValues(route.GetName(), r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
+			prom.reqDurationHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
+			prom.reqRespSizeHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
 			prom.reqInFlight.WithLabelValues(route.GetName(), r.Method).Dec()
 		}
 	})

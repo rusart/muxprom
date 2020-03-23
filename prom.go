@@ -114,10 +114,11 @@ func New(options ...func(prom *MuxProm)) *MuxProm {
 }
 
 func (prom *MuxProm) Instrument() {
-	prom.Router.Use(prom.Middleware)
+	prom.Router.Use(prom.middleware)
+	WrapErrorHandlers(prom.Router, prom.middleware)
 }
 
-func (prom *MuxProm) Middleware(next http.Handler) http.Handler {
+func (prom *MuxProm) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		route := mux.CurrentRoute(r)
 		if route != nil && route.GetName() == prom.MetricsRouteName {
@@ -173,4 +174,27 @@ func (prom *MuxProm) init() {
 		[]string{"route", "method", "http_status"},
 	)
 	prometheus.MustRegister(prom.reqRespSizeHistogram)
+}
+
+func WrapErrorHandlers(r *mux.Router, mwf ...mux.MiddlewareFunc) {
+
+	var middlewareFunctions []mux.MiddlewareFunc
+
+	handlers := map[string]http.Handler{
+		"NotFoundHandler":         r.NotFoundHandler,
+		"MethodNotAllowedHandler": r.MethodNotAllowedHandler,
+	}
+
+	for _, handlerFunction := range mwf {
+		middlewareFunctions = append(middlewareFunctions, handlerFunction)
+	}
+
+	for _, handler := range handlers {
+		if handler != nil {
+			for i := len(middlewareFunctions) - 1; i >= 0; i-- {
+				handler = middlewareFunctions[i].Middleware(handler)
+			}
+		}
+	}
+
 }

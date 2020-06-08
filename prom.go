@@ -43,7 +43,7 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 func (w *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	writer, ok := w.ResponseWriter.(http.Hijacker)
 	if !ok {
-		panic("not supported by the underlying writer")
+		return nil, nil, fmt.Errorf("not supported by the underlying writer")
 	}
 	return writer.Hijack()
 }

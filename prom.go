@@ -1,14 +1,17 @@
 package muxprom
 
 import (
-	"code.cloudfoundry.org/bytefmt"
+	"bufio"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"time"
+
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log"
-	"net/http"
-	"time"
 )
 
 var defaultMetricsPath = "/metrics"
@@ -35,6 +38,14 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 	n, err := w.ResponseWriter.Write(b)
 	w.length += n
 	return n, err
+}
+
+func (w *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	writer, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		panic("not supported by the underlying writer")
+	}
+	return writer.Hijack()
 }
 
 type MuxProm struct {

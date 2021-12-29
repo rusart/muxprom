@@ -132,25 +132,15 @@ func (prom *MuxProm) Instrument() {
 
 func (prom *MuxProm) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		route := mux.CurrentRoute(r)
-		if route != nil && route.GetName() == prom.MetricsRouteName {
-			next.ServeHTTP(w, r)
-		} else {
-			var routeName string
-			if route == nil {
-				routeName = r.RequestURI
-			} else {
-				routeName = route.GetName()
-			}
-			prom.reqInFlight.WithLabelValues(routeName, r.Method).Inc()
-			start := time.Now()
-			sw := statusWriter{ResponseWriter: w}
-			next.ServeHTTP(&sw, r)
-			duration := time.Since(start)
-			prom.reqDurationHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
-			prom.reqRespSizeHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
-			prom.reqInFlight.WithLabelValues(routeName, r.Method).Dec()
-		}
+		routeName := r.URL.RequestURI()
+		prom.reqInFlight.WithLabelValues(routeName, r.Method).Inc()
+		start := time.Now()
+		sw := statusWriter{ResponseWriter: w}
+		next.ServeHTTP(&sw, r)
+		duration := time.Since(start)
+		prom.reqDurationHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(duration.Seconds())
+		prom.reqRespSizeHistogram.WithLabelValues(routeName, r.Method, fmt.Sprintf("%d", sw.status)).Observe(float64(sw.length))
+		prom.reqInFlight.WithLabelValues(routeName, r.Method).Dec()
 	})
 }
 
